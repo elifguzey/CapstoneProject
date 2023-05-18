@@ -1,29 +1,28 @@
 from flask import Flask, make_response, request, session
 from flask_migrate import Migrate
+from config import app, api
 from flask_restful import Api, Resource
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS, cross_origin
-# from models import db
+from models import db, User, SavedRecipe, Recipe
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'a1863ba24c8ea81bb758df02'
-app.json.compact = False
+# app = Flask(__name__)
 
-app = Flask(__name__)
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# app.json.compact = False
+# app.config['SECRET_KEY'] = 'a1863ba24c8ea81bb758df02'
 
-migrate = Migrate(app, db)
-cors = CORS(app)
-db.init_app(app)
-api = Api(app)
+# db.init_app(app)
+# migrate = Migrate(app, db)
+# cors = CORS(app)
 
-
-
+# api = Api(app)
 
 @app.route('/')
 def home():
     return "Hello, World!"
 
+with app.app_context():
+    db.create_all()
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)

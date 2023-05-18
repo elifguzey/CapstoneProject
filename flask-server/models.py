@@ -1,25 +1,29 @@
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import MetaData
+# from sqlalchemy import MetaData
 from config import db, bcrypt
+# from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
 
 
-metadata = MetaData(naming_convention={
-    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-})
-
-db = SQLAlchemy(metadata=metadata)
+# metadata = MetaData(naming_convention={
+#     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+# })
+# db = SQLAlchemy(metadata=metadata)
 
 
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
 
+    serializer_rules = ('-created_at', '-updated_at', '-recipes_id', '-saved_recipe_id')
+
     id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String, nullable=False)
     username = db.Column(db.String(255), unique=True, nullable=False)
     _password_hash = db.Column(db.String, nullable=False)
+    created_at = db.Column(db.DateTime, server_default = db.func.now())
+    updated_at = db.Column(db.DateTime, onupdate = db.func.now())
 
     recipes = db.relationship('Recipe', backref = 'user')
     saved_recipes = association_proxy('recipes', 'saved_recipe')
@@ -50,41 +54,52 @@ class User(db.Model, SerializerMixin):
 class Recipe(db.Model, SerializerMixin):
     __tablename__ ='recipes'
 
+    serializer_rules = ('-created_at', '-updated_at', '-user_id')
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
-    ingredients = db.Column(db.Text, nullable=False)
     instructions = db.Column(db.Text, nullable=False)
-    cooking_time = db.Column(db.String, nullable=False)
-
-    created_at = db.Column(db.DateTime, server_default = db.func.now())
-    updated_at = db.Column(db.DateTime, onupdate = db.func.now())
-
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    categories_id = db.Column (db.Integer, db.ForeignKey('categories.id'))
-
-
-class Category(db.Model, SerializerMixin):
-    __tablename__ = 'categories'
-
-    serializer_rules = ('-created_at', '-updated_at')
-
-    id = db.Column(db.Integer, primary_key=True)
-    description = db.Column(db.String, nullable=False)
+    cooking_time = db.Column(db.Integer, nullable=False)
+    image_url = db.Column(db.String(300))
 
     created_at = db.Column(db.DateTime, server_default = db.func.now())
     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
     
-    recipes = db.relationship('Recipe', backref = 'category', cascade = 'all, delete, delete-orphan')
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    saved_recipes_id = db.Column(db.Integer, db.ForeignKey('saved_recipes.id'))
+
+# class Ingredient(db.Model, SerializerMixin):
+#     __tablename__ = 'ingredients'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     name = db.Column(db.String(100), nullable=False)
+
+
+# class Category(db.Model, SerializerMixin):
+#     __tablename__ = 'categories'
+
+#     serializer_rules = ('-created_at', '-updated_at')
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     description = db.Column(db.String, nullable=False)
+
+#     created_at = db.Column(db.DateTime, server_default = db.func.now())
+#     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
+    
+#     recipes = db.relationship('Recipe', backref = 'category', cascade = 'all, delete, delete-orphan')
 
 class SavedRecipe(db.Model, SerializerMixin):
     __tablename__ ='saved_recipes'
+
+    serializer_rules = ('-created_at', '-updated_at', '-user_id')
+
     id = db.Column(db.Integer, primary_key=True)
 
     created_at = db.Column(db.DateTime, server_default = db.func.now())
     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
 
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    recipe_id = db.Column(db.Integer, db.ForeignKey('recipe.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'), nullable=False)
 
     @validates('recipe_id')
     def validate_recipe_id(self, key, recipe_id):
