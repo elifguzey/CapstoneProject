@@ -52,7 +52,7 @@ class Recipe(db.Model, SerializerMixin):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     instructions = db.Column(db.Text, nullable=False)
-    cooking_time = db.Column(db.Integer, nullable=False)
+    cooking_time = db.Column(db.String, nullable=False)
     image_url = db.Column(db.String(300))
 
     created_at = db.Column(db.DateTime, server_default = db.func.now())
