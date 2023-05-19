@@ -1,16 +1,9 @@
-# from sqlalchemy import MetaData
 from config import db, bcrypt
-# from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
 
-
-# metadata = MetaData(naming_convention={
-#     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
-# })
-# db = SQLAlchemy(metadata=metadata)
 
 
 class User(db.Model, SerializerMixin):
@@ -68,26 +61,6 @@ class Recipe(db.Model, SerializerMixin):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     saved_recipes_id = db.Column(db.Integer, db.ForeignKey('saved_recipes.id'))
 
-# class Ingredient(db.Model, SerializerMixin):
-#     __tablename__ = 'ingredients'
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(100), nullable=False)
-
-
-# class Category(db.Model, SerializerMixin):
-#     __tablename__ = 'categories'
-
-#     serializer_rules = ('-created_at', '-updated_at')
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     description = db.Column(db.String, nullable=False)
-
-#     created_at = db.Column(db.DateTime, server_default = db.func.now())
-#     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
-    
-#     recipes = db.relationship('Recipe', backref = 'category', cascade = 'all, delete, delete-orphan')
-
 class SavedRecipe(db.Model, SerializerMixin):
     __tablename__ ='saved_recipes'
 
@@ -114,3 +87,24 @@ class SavedRecipe(db.Model, SerializerMixin):
         if user is None:
             raise ValueError('User does not exist')
         return user_id
+
+
+# class Ingredient(db.Model, SerializerMixin):
+#     __tablename__ = 'ingredients'
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     name = db.Column(db.String(100), nullable=False)
+
+
+# class Category(db.Model, SerializerMixin):
+#     __tablename__ = 'categories'
+
+#     serializer_rules = ('-created_at', '-updated_at')
+
+#     id = db.Column(db.Integer, primary_key=True)
+#     description = db.Column(db.String, nullable=False)
+
+#     created_at = db.Column(db.DateTime, server_default = db.func.now())
+#     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
+    
+#     recipes = db.relationship('Recipe', backref = 'category', cascade = 'all, delete, delete-orphan')
