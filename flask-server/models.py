@@ -3,23 +3,23 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import validates
 from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy_serializer import SerializerMixin
-
+from datetime import date, datetime, timedelta
 
 
 class User(db.Model, SerializerMixin):
     __tablename__ = 'users'
 
-    serializer_rules = ('-created_at', '-updated_at', '-recipes_id', '-saved_recipe_id')
+    serializer_rules = ('-created_at', '-updated_at', '-saved_recipes')
 
     id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String, nullable=False)
+    email = db.Column(db.String, unique= True, nullable=False)
     username = db.Column(db.String(255), unique=True, nullable=False)
     _password_hash = db.Column(db.String, nullable=False)
     created_at = db.Column(db.DateTime, server_default = db.func.now())
     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
 
-    recipes = db.relationship('Recipe', backref = 'user')
-    saved_recipes = association_proxy('recipes', 'saved_recipe')
+    saved_recipes = db.relationship('SavedRecipe', backref = 'user', cascade= 'all, delete, delete-orphan')
+    recipes = association_proxy('saved_recipes', 'recipe')
 
     @hybrid_property
     def password_hash(self):
@@ -43,28 +43,42 @@ class User(db.Model, SerializerMixin):
             raise ValueError('Password Must be at least 8 Characters')
         return value
    
+    @validates('username', '_password_hash')
+    def validate_nullables(self, key, value):
+        if value is None:
+            raise ValueError(f'{key} is required')
+        return value
+
+    @validates('email')
+    def validate_email(self, key, value):
+        email = User.query.all()
+        if value in  email:
+            raise ValueError('email already exists')
+        if not value:
+            raise ValueError('email is required')
+        return value
 
 class Recipe(db.Model, SerializerMixin):
     __tablename__ ='recipes'
 
-    serializer_rules = ('-created_at', '-updated_at', '-user_id')
+    serializer_rules = ('-created_at', '-updated_at', '-saved_recipes')
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     instructions = db.Column(db.Text, nullable=False)
     cooking_time = db.Column(db.String, nullable=False)
     image_url = db.Column(db.String(300))
-
     created_at = db.Column(db.DateTime, server_default = db.func.now())
     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
     
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    saved_recipes_id = db.Column(db.Integer, db.ForeignKey('saved_recipes.id'))
+    saved_recipes = db.relationship('SavedRecipe', backref = 'recipe')
+    users = association_proxy('saved_recipes', 'user')
+
 
 class SavedRecipe(db.Model, SerializerMixin):
     __tablename__ ='saved_recipes'
 
-    serializer_rules = ('-created_at', '-updated_at', '-user_id')
+    serializer_rules = ('-created_at', '-updated_at')
 
     id = db.Column(db.Integer, primary_key=True)
 
@@ -88,23 +102,3 @@ class SavedRecipe(db.Model, SerializerMixin):
             raise ValueError('User does not exist')
         return user_id
 
-
-# class Ingredient(db.Model, SerializerMixin):
-#     __tablename__ = 'ingredients'
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(100), nullable=False)
-
-
-# class Category(db.Model, SerializerMixin):
-#     __tablename__ = 'categories'
-
-#     serializer_rules = ('-created_at', '-updated_at')
-
-#     id = db.Column(db.Integer, primary_key=True)
-#     description = db.Column(db.String, nullable=False)
-
-#     created_at = db.Column(db.DateTime, server_default = db.func.now())
-#     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
-    
-#     recipes = db.relationship('Recipe', backref = 'category', cascade = 'all, delete, delete-orphan')
