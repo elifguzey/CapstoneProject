@@ -7,7 +7,7 @@ from config import db, app, api
 
 @app.route('/')
 def index():
-    return "HomeBase API is running!"
+    return "Api is running"
 
 with app.app_context():
     db.create_all()
@@ -31,23 +31,56 @@ class Users(Resource):
             user_list.append(u_dict)
         return make_response(user_list, 200)
 
-    # def post (self):
-    #     data = request.get_json()
-    #     try:
-    #         newUser = User(
-    #             username = data['username'],
-    #             email = data['email'],
-    #             password = data["password"],
-    #         )
+    def post (self):
+        data = request.get_json()
+        try:
+            newUser = User(
+                username = data['username'],
+                email = data['email'],
+                password = data["password"],
+            )
 
-    #         db.session.add(newUser)
-    #         db.session.commit()
-    #         return make_response (newUser.to_dict(), 200)
-    #     except Exception as e:
-    #         # db.session.rollback()
-    #         return make_response({'error': f'{repr(e)}'}, 422)
+            db.session.add(newUser)
+            db.session.commit()
+            return make_response (newUser.to_dict(), 200)
+        except Exception as e:
+            return make_response({'error': f'{repr(e)}'}, 422)
 
 api.add_resource(Users, '/users')
+
+class UserById(Resource):
+    def get(self, id):
+        user = User.query.filter_by(id=id).first()
+        if user:
+            return make_response(user.to_dict(), 200)
+        else:
+            return make_response({'error': 'User not found'}, 404)
+        
+    def delete(self, id):
+        user = User.query.filter_by(id=id).first()
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            return make_response(user.to_dict(), 200)
+        else:
+            return make_response({'error': 'User not found'}, 404)
+        
+    def patch(self, id):
+        data = request.get_json()
+        user = User.query.filter_by(id=id).first()
+        if user:
+            if 'username' in data:
+                user.username = data['username']
+            if 'email' in data:
+                user.email = data['email']
+            if 'password' in data:
+                user.password = data['password']
+            db.session.commit()
+            return make_response(user.to_dict(), 200)
+        else:
+            return make_response({'error': 'User not found'}, 404)
+
+api.add_resource(UserById, '/users/<int:id>')
 
 class Recipes(Resource):
     def get(self):
@@ -92,6 +125,20 @@ api.add_resource(RecipesById, '/recipes/<int:id>')
 #         return make_response(recipe_list, 200)
 
 # api.add_resource(SavedRecipes, '/saved_recipes')
+
+# class SavedRecipesById(Resource):
+    # def get(self, id):
+    #     r_inst = Recipe.query.filter(Recipe.id == id).first()
+    #     if r_inst == None:
+    #         return make_response('Recipe not found', 404)
+    #     else:
+    #         recipe_instance_dict = {
+    #             'id': r_inst.id,
+    #             'title': r_inst.title,
+    #             'image_url': r_inst.image_url,
+    #             'instructions': r_inst.instructions
+    #         }
+    #     return make_response(recipe_instance_dict, 200)
 
 # class Signup(Resource):
 #     def post(self):
@@ -138,6 +185,15 @@ api.add_resource(RecipesById, '/recipes/<int:id>')
 #         session.get('user_id') == None
 #         return make_response({}, 204)
     
+class CheckSession(Resource):
+    def get(self):
+        user = User.query.filter(User.id == session.get('user_id')).first()
+        if user:
+            return user.to_dict()
+        else:
+            return {'message': '401: Not Authorized'}, 401
+
+api.add_resource(CheckSession, '/check_session')
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)

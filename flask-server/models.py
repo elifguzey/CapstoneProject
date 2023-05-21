@@ -43,7 +43,7 @@ class User(db.Model, SerializerMixin):
             raise ValueError('Password Must be at least 8 Characters')
         return value
    
-    @validates('username', '_password_hash')
+    @validates('username')
     def validate_nullables(self, key, value):
         if value is None:
             raise ValueError(f'{key} is required')
@@ -70,6 +70,8 @@ class Recipe(db.Model, SerializerMixin):
     image_url = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, server_default = db.func.now())
     updated_at = db.Column(db.DateTime, onupdate = db.func.now())
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    # this from chatgpt ^
     
     saved_recipes = db.relationship('SavedRecipe', backref = 'recipe')
     users = association_proxy('saved_recipes', 'user')
@@ -88,17 +90,17 @@ class SavedRecipe(db.Model, SerializerMixin):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     recipe_id = db.Column(db.Integer, db.ForeignKey('recipes.id'), nullable=False)
 
-    @validates('recipe_id')
-    def validate_recipe_id(self, key, recipe_id):
-        recipe = Recipe.query.filter_by(id=recipe_id).first()
-        if recipe is None:
-            raise ValueError('Recipe does not exist')
-        return recipe_id
+    # @validates('recipe_id')
+    # def validate_recipe_id(self, key, recipe_id):
+    #     recipe = Recipe.query.filter_by(id=recipe_id).first()
+    #     if recipe is None:
+    #         raise ValueError('Recipe does not exist')
+    #     return recipe_id
     
-    @validates('user_id')
-    def validate_user_id(self, key, user_id):
-        user = User.query.filter_by(id=user_id).first()
-        if user is None:
-            raise ValueError('User does not exist')
-        return user_id
+    # @validates('user_id')
+    # def validate_user_id(self, key, user_id):
+    #     user = User.query.filter_by(id=user_id).first()
+    #     if user is None:
+    #         raise ValueError('User does not exist')
+    #     return user_id
 
