@@ -2,12 +2,12 @@ from flask import Flask, make_response, request, session, jsonify, flash
 from flask_migrate import Migrate
 from config import app, api
 from flask_restful import Api, Resource
-from models import db, User, Recipe
+from models import db, User, Recipe, SavedRecipe
 from config import db, app, api
 
 @app.route('/')
-def index():
-    return "Api is running"
+def homepage():
+    return "homepage"
 
 with app.app_context():
     db.create_all()
@@ -36,7 +36,6 @@ class Users(Resource):
         try:
             newUser = User(
                 username = data['username'],
-                email = data['email'],
                 password = data["password"],
             )
 
@@ -114,77 +113,72 @@ class RecipesById(Resource):
 api.add_resource(RecipesById, '/recipes/<int:id>')
 
 
-# class SavedRecipes(Resource):
-#     def get(self):
-#         recipe_list = []
-#         for r in Recipe.query.all():
-#             r_dict = {
-#                 'id': r.id
-#             }
-#             recipe_list.append(r_dict)
-#         return make_response(recipe_list, 200)
+class SavedRecipes(Resource):
+    def get(self):
+        recipe_list = []
+        for r in Recipe.query.all():
+            r_dict = {
+                'id': r.id
+            }
+            recipe_list.append(r_dict)
+        return make_response(recipe_list, 200)
 
-# api.add_resource(SavedRecipes, '/saved_recipes')
+api.add_resource(SavedRecipes, '/saved_recipes')
 
-# class SavedRecipesById(Resource):
-    # def get(self, id):
-    #     r_inst = Recipe.query.filter(Recipe.id == id).first()
-    #     if r_inst == None:
-    #         return make_response('Recipe not found', 404)
-    #     else:
-    #         recipe_instance_dict = {
-    #             'id': r_inst.id,
-    #             'title': r_inst.title,
-    #             'image_url': r_inst.image_url,
-    #             'instructions': r_inst.instructions
-    #         }
-    #     return make_response(recipe_instance_dict, 200)
-
-# class Signup(Resource):
-#     def post(self):
-#         email = request.json['email']
-#         username = request.json['username']
-#         password = request.json['password']
-
-#         if email in [u.email for u in User.query.all()]:
-#             flash('Username already taken!')
-#             return jsonify({"error": "There is already a user with this name"}), 409
-
-#         hashed_password = bcrypt.generate_password_hash(password)
-
-#         new_user = User(
-#             email = email,
-#             _password_hash = hashed_password,
-#             username = username
-#         )
-
-#         db.session.add(new_user)
-#         db.session.commit()
-
-#         return new_user.to_dict()
+class SavedRecipesById(Resource):
+    def get(self, id):
+        r_inst = Recipe.query.filter(Recipe.id == id).first()
+        if r_inst == None:
+            return make_response('Recipe not found', 404)
+        else:
+            recipe_instance_dict = {
+                'id': r_inst.id,
+                'title': r_inst.title,
+                'image_url': r_inst.image_url,
+                'instructions': r_inst.instructions
+            }
+        return make_response(recipe_instance_dict, 200)
 
 # class Login(Resource):
 #     def post(self):
-#         email = request.json['email']
-#         password = request.json['password']
+#         data = request.get_json()
+#         email = data['email']
+#         password = data['password']
+#         user = User.query.filter_by(email=email).first()
+#         if user:
+#             if (user.password == password):
+#                 session['user_id'] = user.id
+                
+#                 return make_response(user.to_dict(), 200)
+#         return make_response({'error': '401 Unauthorized'}, 401)
+# api.add_resource(Login, '/login')
+class Login(Resource):
+    def post(self):
+        request_json = request.get_json()
 
-#         user = User.query.filter_by(email = email).first()
+        username = request_json.get("username")
+        password = request_json.get("password")
 
-#         if not user.authenticate(password):
-#             session['user_id'] = user.id
-#             session.permanent = True
-#             return user.to_dict()
-#         elif user is None:
-#             return {'error': 'Invalid email or password'}, 404
-#         else:
-#             return {'error': 'Invalid email or password'}, 404
+        user = User.query.filter_by(username = username).first()
+            
+
+        if user:
+            if user.authenticate(password):
+                print(user.id)
+                session['user_id'] = user.id
+                return user.to_dict(), 200
+        else:
+                return {'error': 'Invalid Credentials'}, 401
+        
+api.add_resource(Login, '/login')
+
+class Logout(Resource):
+    def delete(self):
+        session['user_id'] = None
+        return {'message': '204: No Content'}, 204
+api.add_resource(Logout, '/logout')
 
 
-# class Logout(Resource):
-#     def delete(self):
-#         session.get('user_id') == None
-#         return make_response({}, 204)
-    
 class CheckSession(Resource):
     def get(self):
         user = User.query.filter(User.id == session.get('user_id')).first()
@@ -193,7 +187,9 @@ class CheckSession(Resource):
         else:
             return {'message': '401: Not Authorized'}, 401
 
+
 api.add_resource(CheckSession, '/check_session')
+
 
 if __name__ == '__main__':
     app.run(port=5555, debug=True)
